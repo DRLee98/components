@@ -1,6 +1,7 @@
-import React, { memo, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import BoxShape from "./BoxShape";
+import Tooltip from "components/Tooltip";
 
 interface IMargin {
   top: number;
@@ -40,6 +41,18 @@ interface ITick {
   y: number;
 }
 
+export interface ITooltipData {
+  key: keyof IData;
+  value: number;
+}
+
+interface ITooltip {
+  x: number;
+  y: number;
+  name: string;
+  data: ITooltipData[];
+}
+
 interface IBoxPlot {
   data: IData[];
   yDomain: [number, number];
@@ -49,11 +62,11 @@ interface IBoxPlot {
 
 function Chart({ data, yDomain, yTicks, margin }: IBoxPlot) {
   const ref = useRef(null);
-  const defaultMargin = 30;
+  const defaultMargin = 0;
 
   const topSpace = 20;
   const xTicksHeight = 30;
-  const yTicksWidth = 50;
+  const yTicksWidth = 30;
   const boxPadding = 20;
 
   const [svgSize, setSvgSize] = useState<ISize>({ width: 0, height: 0 });
@@ -62,11 +75,40 @@ function Chart({ data, yDomain, yTicks, margin }: IBoxPlot) {
   const [xTickList, setXTickList] = useState<ITick[]>([]);
   const [yTickList, setYTickList] = useState<ITick[]>([]);
   const [chartData, setChartData] = useState<IChartData[]>([]);
+  const [tooltipData, setTooltipData] = useState<ITooltip>({
+    x: 0,
+    y: 0,
+    name: "",
+    data: [],
+  });
 
-  const getY = (value: number, height: number) => {
+  const getY = useCallback((value: number, height: number) => {
     const range = yDomain[1] - yDomain[0];
     const target = 1 - (value - yDomain[0]) / range;
-    return height * target;
+    return (height - xTicksHeight - topSpace) * target + topSpace;
+  }, []);
+
+  const addTooltipData = (
+    x: number,
+    y: number,
+    name: string,
+    d: ITooltipData
+  ) => {
+    setTooltipData((prev) => ({
+      x,
+      y,
+      name,
+      data: Boolean(prev.data.find((item) => item.key === d.key))
+        ? prev.data
+        : [...prev.data, d],
+    }));
+  };
+
+  const removeTooltipData = (key: ITooltipData["key"] | "all") => {
+    setTooltipData((prev) => ({
+      ...prev,
+      data: key === "all" ? [] : prev.data.filter((item) => item.key !== key),
+    }));
   };
 
   useEffect(() => {
@@ -121,7 +163,7 @@ function Chart({ data, yDomain, yTicks, margin }: IBoxPlot) {
             width:
               width -
               (margin?.left || defaultMargin) -
-              (margin?.right || defaultMargin),
+              (margin?.right || defaultMargin + yTicksWidth),
             height:
               height -
               (margin?.top || defaultMargin) -
@@ -145,7 +187,7 @@ function Chart({ data, yDomain, yTicks, margin }: IBoxPlot) {
             y2={boundsSize.height - xTicksHeight}
             stroke="#828D99"
           />
-          {yTickList.map(({ text, x, y }, i) => (
+          {yTickList.map(({ text, x, y }) => (
             <g key={`y_tick_${text}_${x}_${y}`}>
               <text
                 x={x}
@@ -158,7 +200,7 @@ function Chart({ data, yDomain, yTicks, margin }: IBoxPlot) {
               >
                 {text}
               </text>
-              {i > 0 && (
+              {/* {i > 0 && (
                 <line
                   x1={yTicksWidth}
                   x2={boundsSize.width}
@@ -167,7 +209,7 @@ function Chart({ data, yDomain, yTicks, margin }: IBoxPlot) {
                   stroke="#E1E5E9"
                   strokeDasharray="3 3"
                 />
-              )}
+              )} */}
             </g>
           ))}
         </g>
@@ -179,7 +221,7 @@ function Chart({ data, yDomain, yTicks, margin }: IBoxPlot) {
             y2={boundsSize.height - xTicksHeight}
             stroke="#828D99"
           />
-          {xTickList.map(({ text, x, y }, i) => (
+          {xTickList.map(({ text, x, y }) => (
             <g key={`x_tick_${text}_${x}_${y}`}>
               <text
                 x={x}
@@ -205,15 +247,23 @@ function Chart({ data, yDomain, yTicks, margin }: IBoxPlot) {
         </g>
         <g>
           {chartData.map((d) => (
-            <BoxShape key={`box_plot_${d.name}`} {...d} />
+            <BoxShape
+              key={`box_plot_${d.name}`}
+              {...d}
+              addTooltipData={addTooltipData}
+              removeTooltipData={removeTooltipData}
+            />
           ))}
         </g>
       </svg>
+      <Tooltip {...tooltipData} />
     </Wrapper>
   );
 }
 
 const Wrapper = styled.div`
+  position: relative;
+
   width: 100%;
   height: 100%;
 `;

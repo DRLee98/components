@@ -1,38 +1,50 @@
-import React from "react";
+import React, { memo } from "react";
 import * as d3 from "d3";
+import { IChartData, ITooltipData } from ".";
 
-type IVerticalViolinShape = {
-  data: number[];
-  median: number;
-  quartileInterval: [number, number];
-  confidenceInterval: [number, number];
-  yDomain: [number, number];
+interface IVerticalViolinShape extends IChartData {
   binNumber: number;
   yScale: d3.ScaleLinear<number, number, never>;
   width: number;
-  height: number;
-};
+  marginTop: number;
+  addTooltipData: (
+    x: number,
+    y: number,
+    name: string,
+    data: ITooltipData
+  ) => void;
+  removeTooltipData: (key: ITooltipData["key"] | "all") => void;
+}
 
 function VerticalViolinShape({
-  data,
+  name,
+  values,
+  maximum,
+  maximumY,
   median,
+  medianY,
+  minimum,
+  minimumY,
   quartileInterval,
+  quartileIntervalY,
   confidenceInterval,
-  yDomain,
+  confidenceIntervalY,
   binNumber,
   yScale,
   width,
-  height,
+  marginTop,
+  addTooltipData,
+  removeTooltipData,
 }: IVerticalViolinShape) {
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
 
   const binBuilder = d3
     .bin()
     .domain([min, max])
     .thresholds(yScale.ticks(binNumber))
     .value((d) => d);
-  const bins = binBuilder(data);
+  const bins = binBuilder(values);
 
   const biggestBin = Math.max(...bins.map((b) => b.length));
 
@@ -50,10 +62,37 @@ function VerticalViolinShape({
 
   const areaPath = areaBuilder(bins);
 
-  const getY = (value: number) => {
-    const range = yDomain[1] - yDomain[0];
-    const target = 1 - (value - yDomain[0]) / range;
-    return height * target;
+  const onMouseMove = (e: React.MouseEvent) => {
+    const { offsetX, offsetY } = e.nativeEvent;
+    const y = offsetY - marginTop;
+    const tooltipDataControl = (
+      y1: number,
+      y2: number,
+      key: ITooltipData["key"],
+      value: number | [number, number]
+    ) => {
+      if (y >= y1 && y <= y2) {
+        addTooltipData(offsetX, y, name, { key, value });
+      } else {
+        removeTooltipData(key);
+      }
+    };
+
+    tooltipDataControl(maximumY - 5, maximumY + 5, "maximum", maximum);
+    tooltipDataControl(medianY - 5, medianY + 5, "median", median);
+    tooltipDataControl(minimumY - 5, minimumY + 5, "minimum", minimum);
+    tooltipDataControl(
+      quartileIntervalY[1] - 5,
+      quartileIntervalY[0] + 5,
+      "quartileInterval",
+      quartileInterval
+    );
+    tooltipDataControl(
+      confidenceIntervalY[1] - 5,
+      confidenceIntervalY[0] + 5,
+      "confidenceInterval",
+      confidenceInterval
+    );
   };
 
   return (
@@ -61,30 +100,43 @@ function VerticalViolinShape({
       <path
         d={areaPath || undefined}
         opacity={1}
-        stroke="#9a6fb0"
-        fill="#9a6fb0"
+        stroke="#0099FE"
+        fill="#0098fe74"
         fillOpacity={0.1}
         strokeWidth={2}
       />
       <line
         x1={width / 2}
         x2={width / 2}
-        y1={getY(confidenceInterval[0])}
-        y2={getY(confidenceInterval[1])}
-        stroke="#2e2e2e"
+        y1={confidenceIntervalY[0]}
+        y2={confidenceIntervalY[1]}
+        stroke="#0099FE"
         strokeWidth={3}
       />
       <line
         x1={width / 2}
         x2={width / 2}
-        y1={getY(quartileInterval[0])}
-        y2={getY(quartileInterval[1])}
-        stroke="#2e2e2e"
+        y1={quartileIntervalY[0]}
+        y2={quartileIntervalY[1]}
+        stroke="#0099FE"
         strokeWidth={7}
       />
-      <circle cx={width / 2} cy={getY(median)} r={3} fill="#ffffff" />
+      <circle cx={width / 2} cy={medianY} r={3} fill="#ffffff" />
+      <rect
+        x={-5}
+        y={maximumY - 5}
+        width={width + 5}
+        height={minimumY - maximumY + 5}
+        fill="transparent"
+        transform={"translate(2, 5)"}
+        onMouseMove={onMouseMove}
+        onMouseOut={() => removeTooltipData("all")}
+      />
     </g>
   );
 }
 
-export default VerticalViolinShape;
+export default memo(
+  VerticalViolinShape,
+  (prev, next) => JSON.stringify(prev) === JSON.stringify(next)
+);
