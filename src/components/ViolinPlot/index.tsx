@@ -233,6 +233,9 @@ function Chart({ data, yDomain, margin }: IViolinPlot) {
 const Wrapper = styled.div`
   width: 100%;
   height: 100%;
+  & > div:last-child {
+    transform: translate(20px, 0%);
+  }
 `;
 
 export default memo(Chart);

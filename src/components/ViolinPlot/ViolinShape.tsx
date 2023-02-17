@@ -63,7 +63,10 @@ function VerticalViolinShape({
   const areaPath = areaBuilder(bins);
 
   const onMouseMove = (e: React.MouseEvent) => {
-    const { offsetX, offsetY } = e.nativeEvent;
+    const {
+      clientX,
+      nativeEvent: { offsetY },
+    } = e;
     const y = offsetY - marginTop;
     const tooltipDataControl = (
       y1: number,
@@ -72,7 +75,7 @@ function VerticalViolinShape({
       value: number | [number, number]
     ) => {
       if (y >= y1 && y <= y2) {
-        addTooltipData(offsetX, y, name, { key, value });
+        addTooltipData(clientX, y, name, { key, value });
       } else {
         removeTooltipData(key);
       }

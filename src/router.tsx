@@ -10,6 +10,7 @@ import BubblePieChartPage from "pages/BubblePieChartPage";
 import DatePickerPage from "pages/DatePickerPage";
 import ViolinPlotPage from "pages/ViolinPlotPage";
 import BoxPlotPage from "pages/BoxPlotPage";
+import ColorPalettePage from "pages/ColorPalettePage";
 
 interface IRoute {
   path: string;
@@ -25,6 +26,7 @@ export const routes: IRoute[] = [
   { path: "/heat-map", element: <HeatMapPage /> },
   { path: "/calendar-heat-map", element: <CalendarHeatMapPage /> },
   { path: "/time-line", element: <TimeLinePage /> },
+  { path: "/color-palette", element: <ColorPalettePage /> },
 ];
 
 function Router() {

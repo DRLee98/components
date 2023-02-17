@@ -1,7 +1,8 @@
 import styled from "styled-components";
-import cursor from "app/pages/App/asset/cursor.svg";
 
 interface IFlexBox {
+  width?: string;
+  height?: string;
   direction?: "row" | "column";
   alignItems?: "flex-start" | "flex-end" | "stretch" | "baseline";
   justifyContent?:
@@ -14,6 +15,9 @@ interface IFlexBox {
 }
 
 const FlexBox = styled.div<IFlexBox>`
+  width: ${({ width }) => width || "unset"};
+  height: ${({ height }) => height || "unset"};
+
   display: flex;
   flex-direction: ${(props) => (props.direction ? props.direction : "row")};
   align-items: ${(props) => (props.alignItems ? props.alignItems : "center")};
@@ -21,7 +25,7 @@ const FlexBox = styled.div<IFlexBox>`
     props.justifyContent ? props.justifyContent : "center"};
   gap: ${(props) => (props.gap ? props.gap : 0)}px;
 
-  cursor: ${(props) => (props.onClick ? "pointer" : `${cursor}, auto`)};
+  cursor: ${(props) => (props.onClick ? "pointer" : "auto")};
 `;
 
 export default FlexBox;
