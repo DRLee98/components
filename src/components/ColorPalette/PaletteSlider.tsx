@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import styled from "styled-components";
 import FlexBox from "components/FlexBox";
 import transparentBg from "./assets/transparent.png";
@@ -8,11 +8,18 @@ export enum EType {
   OPACITY,
 }
 
+interface IOnChangeFn {
+  x: number;
+  offsetLeft: number;
+  width: number;
+  complete: boolean;
+}
+
 interface IPaletteSlider {
   value: number;
   type: EType;
   color: string;
-  onChange: (value: number) => void;
+  onChange: (value: number, complete: boolean) => void;
 }
 
 function PaletteSlider({ value, type, color, onChange }: IPaletteSlider) {
@@ -23,23 +30,42 @@ function PaletteSlider({ value, type, color, onChange }: IPaletteSlider) {
       nativeEvent: { offsetX },
       currentTarget: { clientWidth },
     } = e;
-    onChange(formatValue(offsetX / clientWidth));
+    onChange(formatValue(offsetX / clientWidth), true);
+  };
+
+  const onChangeFn = ({ x, offsetLeft, width, complete }: IOnChangeFn) => {
+    const v = (x - offsetLeft) / width;
+    const num = formatValue(v);
+    if (v > 1) return onChange(formatValue(1), complete);
+    if (v < 0) return onChange(formatValue(0), complete);
+    return onChange(num, complete);
   };
 
   const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     const { currentTarget } = e;
     const onMouseMoveWindow = (event: MouseEvent) => {
-      const v =
-        (event.clientX - currentTarget.offsetLeft) / currentTarget.clientWidth;
-      const num = formatValue(v);
-      if (v > 1) return onChange(formatValue(1));
-      if (v < 0) return onChange(formatValue(0));
-      return onChange(num);
+      onChangeFn({
+        x: event.clientX,
+        offsetLeft: currentTarget.offsetLeft,
+        width: currentTarget.clientWidth,
+        complete: false,
+      });
     };
-    window.addEventListener("mousemove", onMouseMoveWindow);
-    window.addEventListener("mouseup", () => {
+
+    const onMouseUp = (event: MouseEvent) => {
       window.removeEventListener("mousemove", onMouseMoveWindow);
-    });
+      window.removeEventListener("mouseup", onMouseUp);
+
+      onChangeFn({
+        x: event.clientX,
+        offsetLeft: currentTarget.offsetLeft,
+        width: currentTarget.clientWidth,
+        complete: true,
+      });
+    };
+
+    window.addEventListener("mousemove", onMouseMoveWindow);
+    window.addEventListener("mouseup", onMouseUp);
   };
 
   return (
@@ -137,4 +163,7 @@ const Pointer = styled.div<IPointer>`
   z-index: 1;
 `;
 
-export default PaletteSlider;
+export default memo(
+  PaletteSlider,
+  (prev, next) => JSON.stringify(prev) === JSON.stringify(next)
+);
