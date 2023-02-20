@@ -32,8 +32,9 @@ function PaletteSlider({ value, type, color, onChange }: IPaletteSlider) {
       const v =
         (event.clientX - currentTarget.offsetLeft) / currentTarget.clientWidth;
       const num = formatValue(v);
-      if (v > 1 || v < 0) return;
-      onChange(num);
+      if (v > 1) return onChange(formatValue(1));
+      if (v < 0) return onChange(formatValue(0));
+      return onChange(num);
     };
     window.addEventListener("mousemove", onMouseMoveWindow);
     window.addEventListener("mouseup", () => {
