@@ -12,7 +12,7 @@ interface IGetColor {
 }
 
 interface IHue {
-  onChangeColor: (color: string) => void;
+  onChangeColor: (color: string, complete: boolean) => void;
 }
 
 function Hue({ onChangeColor }: IHue) {
@@ -31,12 +31,10 @@ function Hue({ onChangeColor }: IHue) {
       const deg = (rad * 180) / Math.PI;
       const circleDeg = deg < 0 ? deg + 360 : deg;
 
-      if (complete) {
-        const color = `hwb(${Math.floor(circleDeg)}deg ${
-          distance > 1 ? 1 : Math.ceil((1 - distance) * 100)
-        }%`;
-        onChangeColor(color);
-      }
+      const color = `hwb(${Math.floor(circleDeg)}deg ${
+        distance > 1 ? 1 : Math.ceil((1 - distance) * 100)
+      }%`;
+      onChangeColor(color, complete);
 
       const positionX =
         distance > 0.95
@@ -63,14 +61,13 @@ function Hue({ onChangeColor }: IHue) {
       clientY,
       currentTarget: { offsetLeft, offsetWidth, offsetTop, offsetHeight },
     } = e;
-    const parant = e.currentTarget.offsetParent as HTMLDivElement;
     getColor({
       x: clientX,
       y: clientY,
       width: offsetWidth,
       height: offsetHeight,
-      left: offsetLeft + parant.offsetLeft,
-      top: offsetTop + parant.offsetTop,
+      left: offsetLeft,
+      top: offsetTop,
       complete: true,
     });
   }, []);

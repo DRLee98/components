@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { forwardRef, memo } from "react";
 import styled from "styled-components";
 import FlexBox from "components/FlexBox";
 import transparentBg from "./assets/transparent.png";
@@ -18,70 +18,71 @@ interface IOnChangeFn {
 interface IPaletteSlider {
   value: number;
   type: EType;
-  color: string;
   onChange: (value: number, complete: boolean) => void;
 }
 
-function PaletteSlider({ value, type, color, onChange }: IPaletteSlider) {
-  const formatValue = (num: number) => Math.ceil(num * 100);
+const PaletteSlider = forwardRef<HTMLDivElement, IPaletteSlider>(
+  ({ value, type, onChange }, ref) => {
+    const formatValue = (num: number) => Math.ceil(num * 100);
 
-  const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const {
-      nativeEvent: { offsetX },
-      currentTarget: { clientWidth },
-    } = e;
-    onChange(formatValue(offsetX / clientWidth), true);
-  };
-
-  const onChangeFn = ({ x, offsetLeft, width, complete }: IOnChangeFn) => {
-    const v = (x - offsetLeft) / width;
-    const num = formatValue(v);
-    if (v > 1) return onChange(formatValue(1), complete);
-    if (v < 0) return onChange(formatValue(0), complete);
-    return onChange(num, complete);
-  };
-
-  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    const { currentTarget } = e;
-    const onMouseMoveWindow = (event: MouseEvent) => {
-      onChangeFn({
-        x: event.clientX,
-        offsetLeft: currentTarget.offsetLeft,
-        width: currentTarget.clientWidth,
-        complete: false,
-      });
+    const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      const {
+        nativeEvent: { offsetX },
+        currentTarget: { clientWidth },
+      } = e;
+      onChange(formatValue(offsetX / clientWidth), true);
     };
 
-    const onMouseUp = (event: MouseEvent) => {
-      window.removeEventListener("mousemove", onMouseMoveWindow);
-      window.removeEventListener("mouseup", onMouseUp);
-
-      onChangeFn({
-        x: event.clientX,
-        offsetLeft: currentTarget.offsetLeft,
-        width: currentTarget.clientWidth,
-        complete: true,
-      });
+    const onChangeFn = ({ x, offsetLeft, width, complete }: IOnChangeFn) => {
+      const v = (x - offsetLeft) / width;
+      const num = formatValue(v);
+      if (v > 1) return onChange(formatValue(1), complete);
+      if (v < 0) return onChange(formatValue(0), complete);
+      return onChange(num, complete);
     };
 
-    window.addEventListener("mousemove", onMouseMoveWindow);
-    window.addEventListener("mouseup", onMouseUp);
-  };
+    const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+      const { currentTarget } = e;
+      const onMouseMoveWindow = (event: MouseEvent) => {
+        onChangeFn({
+          x: event.clientX,
+          offsetLeft: currentTarget.offsetLeft,
+          width: currentTarget.clientWidth,
+          complete: false,
+        });
+      };
 
-  return (
-    <Container>
-      <Track
-        color={color}
-        type={type}
-        image={transparentBg}
-        onClick={onClick}
-        onMouseDown={onMouseDown}
-      >
-        <Pointer rangeValue={value} />
-      </Track>
-    </Container>
-  );
-}
+      const onMouseUp = (event: MouseEvent) => {
+        window.removeEventListener("mousemove", onMouseMoveWindow);
+        window.removeEventListener("mouseup", onMouseUp);
+
+        onChangeFn({
+          x: event.clientX,
+          offsetLeft: currentTarget.offsetLeft,
+          width: currentTarget.clientWidth,
+          complete: true,
+        });
+      };
+
+      window.addEventListener("mousemove", onMouseMoveWindow);
+      window.addEventListener("mouseup", onMouseUp);
+    };
+
+    return (
+      <Container>
+        <Track
+          type={type}
+          image={transparentBg}
+          onClick={onClick}
+          onMouseDown={onMouseDown}
+        >
+          <Bg ref={ref} type={type} />
+          <Pointer rangeValue={value} />
+        </Track>
+      </Container>
+    );
+  }
+);
 
 const Container = styled(FlexBox)`
   width: 100%;
@@ -92,8 +93,8 @@ const Container = styled(FlexBox)`
 `;
 
 interface ITrack {
-  type: EType;
   image?: string;
+  type: EType;
 }
 
 const Track = styled.div<ITrack>`
@@ -103,23 +104,6 @@ const Track = styled.div<ITrack>`
   height: 100%;
 
   cursor: pointer;
-
-  &:after {
-    content: "";
-
-    position: absolute;
-    left: -9px;
-
-    width: calc(100% + 18px);
-    height: 100%;
-
-    border-radius: 999px;
-    background: ${({ color, type }) => `linear-gradient(
-    to left,
-     ${color || "#ffffff"},
-    ${type === EType.BLACK ? "#000000" : color?.replace(")", "/ 0%)")}
-  )`};
-  }
 
   ${({ type, image }) =>
     type === EType.OPACITY &&
@@ -139,6 +123,27 @@ const Track = styled.div<ITrack>`
   `}
 
   z-index: 1;
+`;
+
+interface IBg {
+  type: EType;
+}
+
+const Bg = styled.div<IBg>`
+  position: absolute;
+  left: -9px;
+
+  width: calc(100% + 18px);
+  height: 100%;
+
+  border-radius: 999px;
+  background: ${({ type }) => `linear-gradient(
+    to left,
+     #ffffff,
+    ${type === EType.BLACK ? "#000000" : "rgba(255, 255, 255, 0)"}
+  )`};
+
+  pointer-events: none;
 `;
 
 interface IPointer {
